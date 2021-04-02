@@ -41,8 +41,10 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 
 	go func() {
 		defer func() {
-			maxWait.Stop()
 			close(streams)
+			maxWait.Stop()
+
+			b.runJob(ctx)
 		}()
 
 	loop:
@@ -86,7 +88,7 @@ func (b *Batcher) runJob(ctx context.Context) {
 
 	if err != nil {
 		log.Error("job return error ", err)
-		log.Info("check retry setting, MaxRetry = %d, currentRetry = %d",
+		log.Infof("check retry setting, MaxRetry = %d, currentRetry = %d",
 			b.MaxRetry, b.currentRetry)
 		b.currentRetry = b.currentRetry + 1
 	}
