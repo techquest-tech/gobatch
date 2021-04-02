@@ -71,7 +71,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 	b.queue = append(b.queue, item)
-	log.Info("item pushed. queue len ", len(b.queue))
+	log.Info("item received. queue len ", len(b.queue))
 
 	if (len(b.queue)) >= int(b.BatchSize) {
 		log.Info("queue is full. going to run job")
@@ -88,12 +88,17 @@ func (b *Batcher) runJob(ctx context.Context) {
 
 	if err != nil {
 		log.Error("job return error ", err)
-		log.Infof("check retry setting, MaxRetry = %d, currentRetry = %d",
-			b.MaxRetry, b.currentRetry)
+		if b.currentRetry < b.MaxRetry {
+			log.Infof("check retry setting, MaxRetry = %d, currentRetry = %d",
+				b.MaxRetry, b.currentRetry)
+		} else {
+			log.Error("max retry reached. adandon queue len = ", len(b.queue))
+		}
+
 		b.currentRetry = b.currentRetry + 1
 	}
 
-	if err == nil || b.currentRetry >= b.MaxRetry {
+	if err == nil || b.currentRetry > b.MaxRetry {
 		b.initQueue()
 	}
 
