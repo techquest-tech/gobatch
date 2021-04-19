@@ -25,7 +25,7 @@ func NewBatcher(job Job) *Batcher {
 	result := &Batcher{
 		Job:       job,
 		BatchSize: 10,
-		MaxWait:   5 * time.Second,
+		MaxWait:   30 * time.Second,
 		// Queue:     make([]interface{}, 20),
 	}
 	result.initQueue()
@@ -56,7 +56,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 				b.pushCheckTrigger(ctx, item)
 
 			case <-maxWait.C:
-				log.Info("time is up.")
+				log.Debug("time is up.")
 				b.runJob(ctx)
 				maxWait.Reset(b.MaxWait)
 			}
@@ -81,7 +81,7 @@ func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 func (b *Batcher) runJob(ctx context.Context) {
 	if len(b.queue) == 0 {
-		log.Info("queue is empty, job did not run")
+		log.Info("queue is empty.")
 		return
 	}
 	err := b.Job(ctx, b.queue)
