@@ -81,7 +81,7 @@ func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 func (b *Batcher) runJob(ctx context.Context) {
 	if len(b.queue) == 0 {
-		log.Info("queue is empty.")
+		log.Debug("queue is empty.")
 		return
 	}
 	err := b.Job(ctx, b.queue)
