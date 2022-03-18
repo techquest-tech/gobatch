@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Job func(ctx context.Context, queue []interface{}) error
 
-var log = logrus.WithField("component", "goBatcher")
+// var log = logrus.WithField("component", "goBatcher")
 
 //Batcher struct for batcher job.
 type Batcher struct {
@@ -19,6 +19,7 @@ type Batcher struct {
 	MaxRetry     uint
 	currentRetry uint
 	queue        []interface{}
+	Logger       *zap.Logger
 }
 
 func NewBatcher(job Job) *Batcher {
@@ -56,12 +57,12 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 				b.pushCheckTrigger(ctx, item)
 
 			case <-maxWait.C:
-				log.Debug("time is up.")
+				b.Logger.Debug("time is up.")
 				b.runJob(ctx)
 				maxWait.Reset(b.MaxWait)
 			}
 		}
-		log.Info("Done.")
+		b.Logger.Info("Done.")
 	}()
 
 	return streams, nil
@@ -71,28 +72,27 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 	b.queue = append(b.queue, item)
-	log.Info("item received. queue len ", len(b.queue))
+	b.Logger.Info("item received. queue len ", zap.Int("len", len(b.queue)))
 
 	if (len(b.queue)) >= int(b.BatchSize) {
-		log.Info("queue is full. going to run job")
+		b.Logger.Info("queue is full. going to run job")
 		b.runJob(ctx)
 	}
 }
 
 func (b *Batcher) runJob(ctx context.Context) {
 	if len(b.queue) == 0 {
-		log.Debug("queue is empty.")
+		b.Logger.Debug("queue is empty.")
 		return
 	}
 	err := b.Job(ctx, b.queue)
 
 	if err != nil {
-		log.Error("job return error ", err)
+		b.Logger.Error("job return error ", zap.Error(err))
 		if b.currentRetry < b.MaxRetry {
-			log.Infof("check retry setting, MaxRetry = %d, currentRetry = %d",
-				b.MaxRetry, b.currentRetry)
+			b.Logger.Info("check retry setting", zap.Uint("MaxRetry", b.MaxRetry), zap.Uint("currenty", b.currentRetry))
 		} else {
-			log.Error("max retry reached. adandon queue len = ", len(b.queue))
+			b.Logger.Error("max retry reached. adandon queue", zap.Int("len", len(b.queue)))
 		}
 
 		b.currentRetry = b.currentRetry + 1
@@ -105,7 +105,7 @@ func (b *Batcher) runJob(ctx context.Context) {
 }
 
 func (b *Batcher) initQueue() {
-	log.Info("batch job queue reset.")
+	b.Logger.Info("batch job queue reset.")
 	b.currentRetry = 0
 	b.queue = []interface{}{}
 }

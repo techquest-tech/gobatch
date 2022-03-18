@@ -1,9 +1,10 @@
 module github.com/techquest-tech/gobatch
 
-go 1.16
+go 1.17
+
+require go.uber.org/zap v1.21.0
 
 require (
-	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/sys v0.0.0-20191220142924-d4481acd189f // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 )
