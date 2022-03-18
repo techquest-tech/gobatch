@@ -72,7 +72,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 	b.queue = append(b.queue, item)
-	b.Logger.Info("item received. queue len ", zap.Int("len", len(b.queue)))
+	b.Logger.Debug("item received. queue len ", zap.Int("len", len(b.queue)))
 
 	if (len(b.queue)) >= int(b.BatchSize) {
 		b.Logger.Info("queue is full. going to run job")
@@ -105,7 +105,7 @@ func (b *Batcher) runJob(ctx context.Context) {
 }
 
 func (b *Batcher) initQueue() {
-	b.Logger.Info("batch job queue reset.")
+	b.Logger.Debug("batch job queue reset.")
 	b.currentRetry = 0
 	b.queue = []interface{}{}
 }
