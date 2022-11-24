@@ -11,7 +11,7 @@ type Job func(ctx context.Context, queue []interface{}) error
 
 // var log = logrus.WithField("component", "goBatcher")
 
-//Batcher struct for batcher job.
+// Batcher struct for batcher job.
 type Batcher struct {
 	BatchSize    uint
 	MaxWait      time.Duration
@@ -34,9 +34,11 @@ func NewBatcher(job Job) *Batcher {
 	return result
 }
 
-//Start start batch
+// Start start batch
 func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
-
+	if b.Logger == nil {
+		b.Logger = zap.L()
+	}
 	maxWait := time.NewTimer(b.MaxWait)
 	streams := make(chan interface{})
 
@@ -68,7 +70,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 	return streams, nil
 }
 
-//pushCheckTrigger push data to queue, check if > max size, then trigger event or wait.
+// pushCheckTrigger push data to queue, check if > max size, then trigger event or wait.
 func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 	b.queue = append(b.queue, item)
