@@ -27,7 +27,7 @@ func NewBatcher(job Job) *Batcher {
 		Job:       job,
 		BatchSize: 10,
 		MaxWait:   30 * time.Second,
-		// Queue:     make([]interface{}, 20),
+		Logger:    zap.L(),
 	}
 	result.initQueue()
 
