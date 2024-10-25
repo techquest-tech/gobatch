@@ -29,7 +29,6 @@ func NewBatcher(job Job) *Batcher {
 		MaxWait:   30 * time.Second,
 		Logger:    zap.L(),
 	}
-	result.initQueue()
 
 	return result
 }
@@ -40,13 +39,14 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 		b.Logger = zap.L()
 	}
 	maxWait := time.NewTimer(b.MaxWait)
-	streams := make(chan interface{})
+	streams := make(chan interface{}, b.BatchSize)
+
+	b.initQueue()
 
 	go func() {
 		defer func() {
 			close(streams)
 			maxWait.Stop()
-
 			b.runJob(ctx)
 		}()
 
@@ -84,7 +84,7 @@ func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 
 func (b *Batcher) runJob(ctx context.Context) {
 	if len(b.queue) == 0 {
-		// b.Logger.Debug("queue is empty.")
+		b.Logger.Debug("queue is empty, job done.")
 		return
 	}
 	err := b.Job(ctx, b.queue)
@@ -107,7 +107,19 @@ func (b *Batcher) runJob(ctx context.Context) {
 }
 
 func (b *Batcher) initQueue() {
-	b.Logger.Debug("batch job queue reset.")
 	b.currentRetry = 0
-	b.queue = []interface{}{}
+	if b.queue == nil {
+		b.queue = make([]interface{}, 0)
+		b.Logger.Debug("batch job queue created.")
+		return
+	}
+
+	if len(b.queue) > 0 {
+		b.Logger.Debug("batch job queue reset.")
+		b.Logger.Debug("cleanup queue")
+		b.queue = nil
+		b.queue = make([]interface{}, 0)
+	} else {
+		b.Logger.Debug("batch job queue is empty.")
+	}
 }
