@@ -2,6 +2,7 @@ package gobatch
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -20,6 +21,7 @@ type Batcher struct {
 	currentRetry uint
 	queue        []interface{}
 	Logger       *zap.Logger
+	mutex        sync.Mutex
 }
 
 func NewBatcher(job Job) *Batcher {
@@ -28,6 +30,7 @@ func NewBatcher(job Job) *Batcher {
 		BatchSize: 10,
 		MaxWait:   30 * time.Second,
 		Logger:    zap.L(),
+		mutex:     sync.Mutex{},
 	}
 
 	return result
@@ -39,7 +42,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 		b.Logger = zap.L()
 	}
 	maxWait := time.NewTimer(b.MaxWait)
-	streams := make(chan interface{}, b.BatchSize)
+	streams := make(chan interface{}, b.BatchSize*10)
 
 	b.initQueue()
 
@@ -83,6 +86,9 @@ func (b *Batcher) pushCheckTrigger(ctx context.Context, item interface{}) {
 }
 
 func (b *Batcher) runJob(ctx context.Context) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
 	if len(b.queue) == 0 {
 		b.Logger.Debug("queue is empty, job done.")
 		return
