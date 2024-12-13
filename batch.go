@@ -57,6 +57,7 @@ func (b *Batcher) Start(ctx context.Context) (chan interface{}, error) {
 		for {
 			select {
 			case <-ctx.Done():
+				zap.L().Info("batch job stopped.")
 				break loop
 			case item := <-streams:
 				b.pushCheckTrigger(ctx, item)
